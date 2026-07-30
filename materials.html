@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Materials - Self Study</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body onload="loadMaterials()">
+
+<script>
+if(!sessionStorage.getItem("userId")){
+    window.location.href = "login.html";
+}
+</script>
+
+
+<div class="sidebar">
+    <div>
+        <div class="sidebar-header">
+    <div class="dashboard-btn" onclick="goDashboard()">☰</div>
+    <h2>HOME</h2>
+</div>
+
+        <ul>
+            <li class="active">Materials</li>
+            <li onclick="location.href='chatbot.html'">AI Chatbot</li>
+<li onclick="location.href='summariser.html'">AI Summariser</li>
+<li onclick="location.href='smartquiz.html'">AI Smart Quiz</li>
+<li onclick="location.href='timetable.html'">Timetable</li>
+
+            <li onclick="location.href='assignments.html'">Assignment Tracker</li>
+            <li onclick="location.href='grades.html'">Grades</li>
+            <li onclick="location.href='progress.html'">Progress Tracker</li>
+        </ul>
+    </div>
+
+    <div class="logout" onclick="logout()">Logout</div>
+
+</div>
+
+<div class="main">
+    <div class="header">
+        <div style="display:flex;align-items:center;">
+            <img src="logo.jpeg">
+            <h1>Self Study</h1>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <h2>Uploaded Materials</h2>
+        <h3>Documents</h3>
+        <div id="docs"></div>
+
+        <h3>Links</h3>
+        <div id="links"></div>
+
+        <h3>Audio/Video</h3>
+        <div id="media"></div>
+    </div>
+
+    <div class="section-card">
+        <h2>Pasted Materials</h2>
+        <h3>Text</h3>
+        <div id="text"></div>
+
+        <h3>Websites</h3>
+        <div id="website"></div>
+
+        <h3>Links</h3>
+        <div id="plink"></div>
+    </div>
+</div>
+
+
+<script src="script.js"></script>
+<script>
+function goDashboard(){
+    window.location.href = "index.html";
+}
+function logout(){
+    sessionStorage.removeItem("userId");
+    window.location.href = "login.html";
+}
+
+</script>
+
+<script>
+window.onload = function(){
+    loadMaterialsFromDB();
+    loadPastedMaterials();
+};
+</script>
+
+</body>
+</html>

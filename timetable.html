@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Timetable - Self Study</title>
+<link rel="stylesheet" href="style.css">
+
+<style>
+
+/* Match Assignment Tracker Layout Exactly */
+
+.assignment-card {
+    background: rgba(255,255,255,0.05);
+    padding: 30px;
+    border-radius: 15px;
+    margin-top: 40px;
+}
+
+.section-title {
+    margin-bottom: 20px;
+}
+
+.upload-section {
+    margin-bottom: 30px;
+}
+
+.upload-btn {
+    background: #2563eb;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.upload-btn:hover {
+    background: #1d4ed8;
+}
+
+.image-container {
+    margin-top: 20px;
+    background: rgba(255,255,255,0.04);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.image-container img {
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+}
+
+.placeholder-text {
+    opacity: 0.6;
+}
+
+.delete-btn {
+    margin-top: 15px;
+    background: #dc2626;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.delete-btn:hover {
+    background: #b91c1c;
+}
+
+</style>
+</head>
+
+<body onload="loadTimetable()">
+
+<script>
+if(!sessionStorage.getItem("userId")){
+    window.location.href = "login.html";
+}
+</script>
+<div class="sidebar">
+    <div>
+
+        <div class="sidebar-header">
+            <div class="dashboard-btn" onclick="goDashboard()">☰</div>
+            <h2>HOME</h2>
+        </div>
+
+        <ul>
+            <li onclick="location.href='materials.html'">Materials</li>
+            <li onclick="location.href='chatbot.html'">AI Chatbot</li>
+            <li onclick="location.href='summariser.html'">AI Summariser</li>
+            <li onclick="location.href='smartquiz.html'">AI Smart Quiz</li>
+            <li class="active">Timetable</li>
+            <li onclick="location.href='assignments.html'">Assignment Tracker</li>
+            <li onclick="location.href='grades.html'">Grades</li>
+            <li onclick="location.href='progress.html'">Progress Tracker</li>
+        </ul>
+
+    </div>
+
+    <div class="logout" onclick="logout()">Logout</div>
+</div>
+
+<div class="main">
+
+<div class="header">
+    <div style="display:flex;align-items:center;">
+        <img src="logo.jpeg" class="logo">
+        <h1>Self Study</h1>
+    </div>
+</div>
+
+<div class="assignment-card">
+
+<h2 class="section-title">My Timetable</h2>
+
+<div class="upload-section">
+    <input type="file" id="timetableInput" accept="image/*">
+    <button class="upload-btn" onclick="uploadTimetable()">Upload Timetable</button>
+</div>
+
+<div id="imageContainer" class="image-container">
+    <p class="placeholder-text">No timetable uploaded yet.</p>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+/* ================= IMAGE UPLOAD ================= */
+
+async function uploadTimetable(){
+
+    const file = document.getElementById("timetableInput").files[0];
+    if(!file){
+        alert("Please select an image.");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(e){
+
+        const userId = sessionStorage.getItem("userId");
+
+        await fetch("http://localhost:5000/api/timetable/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId,
+                image: e.target.result
+            })
+        });
+
+        displayImage(e.target.result);
+    };
+
+    reader.readAsDataURL(file);
+}
+
+async function loadTimetable(){
+
+    const userId = sessionStorage.getItem("userId");
+
+    const res = await fetch(`http://localhost:5000/api/timetable/${userId}`);
+    const data = await res.json();
+
+    if(data.length === 0) return;
+
+    const imageRow = data.find(row => row.image);
+    if(imageRow){
+        displayImage(imageRow.image);
+    }
+
+    // You can also display saved day timings here
+}
+
+function displayImage(data){
+    document.getElementById("imageContainer").innerHTML = `
+        <img src="${data}">
+        <br><br>
+        <h3>Add Day End Time</h3>
+        <select id="daySelect">
+            <option>Monday</option>
+            <option>Tuesday</option>
+            <option>Wednesday</option>
+            <option>Thursday</option>
+            <option>Friday</option>
+            <option>Saturday</option>
+        </select>
+        <input type="time" id="endTimeInput">
+        <button onclick="saveDayTiming()">Save</button>
+        <br><br>
+        <button class="delete-btn" onclick="deleteTimetable()">Delete Timetable</button>
+        <div id="savedTimings"></div>
+    `;
+}
+
+/* ================= SAVE DAY END TIME ================= */
+
+async function saveDayTiming(){
+
+    const day = document.getElementById("daySelect").value;
+    const endTime = document.getElementById("endTimeInput").value;
+    const userId = sessionStorage.getItem("userId");
+
+    if(!endTime){
+        alert("Please select end time.");
+        return;
+    }
+
+    await fetch("http://localhost:5000/api/timetable/day", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, day, endTime , email: sessionStorage.getItem("email")})
+    });
+
+    alert("Saved successfully");
+}
+
+/* ================= DISPLAY SAVED TIMINGS ================= */
+
+function loadDayTimings(){
+
+    const container = document.getElementById("savedTimings");
+    if(!container) return;
+
+    const timings = JSON.parse(localStorage.getItem("dayTimings")) || [];
+
+    if(timings.length === 0){
+        container.innerHTML = "<p>No day timings added.</p>";
+        return;
+    }
+
+    let html = "<h4>Saved Day End Times:</h4>";
+    timings.forEach(item => {
+        html += `<p>${item.day} - Ends at ${item.endTime}</p>`;
+    });
+
+    container.innerHTML = html;
+}
+
+/* ================= TIME CHECK LOGIC ================= */
+
+function requestNotificationPermission(){
+    if("Notification" in window){
+        Notification.requestPermission();
+    }
+}
+
+function checkDayEnd(){
+
+    const now = new Date();
+
+    const today = now.toLocaleDateString("en-US", { weekday: "long" });
+
+    const currentTime =
+        now.getHours().toString().padStart(2,"0") + ":" +
+        now.getMinutes().toString().padStart(2,"0");
+
+    const timings = JSON.parse(localStorage.getItem("dayTimings")) || [];
+
+    const alreadyNotified = localStorage.getItem("lastNotified");
+
+    timings.forEach(item => {
+
+        if(item.day === today && item.endTime === currentTime){
+
+            if(alreadyNotified === today + currentTime){
+                return; // prevent duplicate notifications
+            }
+
+            localStorage.setItem("lastNotified", today + currentTime);
+
+            if(Notification.permission === "granted"){
+                new Notification("Study Reminder 📚", {
+                    body: "Your classes for today are over. Do you have assignments to add?"
+                });
+            }
+
+            const answer = confirm(
+                "Your classes for today are over.\nDo you have assignments to add?"
+            );
+
+            if(answer){
+                window.location.href = "assignments.html";
+            }
+        }
+    });
+}
+/* ================= DELETE ================= */
+
+async function deleteTimetable(){
+
+    const userId = sessionStorage.getItem("userId");
+
+    await fetch(`http://localhost:5000/api/timetable/${userId}`, {
+        method: "DELETE"
+    });
+
+    location.reload();
+}
+
+function logout(){
+    sessionStorage.removeItem("userId");
+    window.location.href="login.html";
+}
+
+function goDashboard(){
+    window.location.href = "index.html";
+}
+
+function startEndOfDayChecker(){
+
+    if (!("Notification" in window)) return;
+
+    Notification.requestPermission();
+
+    setInterval(() => {
+
+        const now = new Date();
+        const currentTime = now.getHours() + ":" + now.getMinutes();
+
+        const endTime = localStorage.getItem("dayEndTime");
+
+        if(currentTime === endTime){
+            new Notification("Study Day Completed 🎉", {
+                body: "Great job! You've completed today's schedule."
+            });
+        }
+
+    }, 60000); // checks every 1 minute
+}
+
+</script>
+
+
+</body>
+</html>
+
+
